@@ -1,13 +1,21 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@1,400;1,600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-serif: "Playfair Display", Georgia, serif;
+  --font-sans: "Heebo", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-display: "Space Grotesk", "Heebo", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
   --color-gold: #D4AF37;
+  --color-gold-soft: #E8C874;
   --color-dark-bg: #0A0A0A;
   --color-dark-surface: #111111;
+  --color-dark-raised: #1A1A1A;
   --color-border-dim: rgba(255, 255, 255, 0.05);
+  --color-border-soft: rgba(255, 255, 255, 0.1);
+  --color-accent-red: #EF4444;
+  --color-accent-green: #10B981;
+  --color-accent-blue: #60A5FA;
+  --color-accent-purple: #A78BFA;
 }
 
 @layer utilities {
@@ -15,8 +23,8 @@
     display: none;
   }
   .hide-scrollbar {
-    -ms-overflow-style: none; /* IE and Edge */
-    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
   .glass {
     @apply bg-white/5 backdrop-blur-md border border-white/10;
@@ -24,15 +32,54 @@
   .glass-light {
     @apply bg-[#111111] border border-[rgba(255,255,255,0.05)];
   }
+  .font-display {
+    font-family: var(--font-display);
+  }
+  .font-mono-num {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+  .text-gold {
+    color: #D4AF37;
+  }
+  .bg-surface {
+    background-color: #111111;
+  }
+  .bg-raised {
+    background-color: #1A1A1A;
+  }
+  .bg-dot-pattern {
+    background-image: radial-gradient(rgba(255,255,255,0.04) 1px, transparent 1px);
+    background-size: 16px 16px;
+  }
+  .shadow-soft {
+    box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+  }
+  .shadow-lifted {
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+  }
 }
 
 body {
   @apply bg-[#050505] text-[#F5F5F5];
+  font-family: var(--font-sans);
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
-  overflow: hidden; /* App-like feel, block body scrolling */
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 #root {
   height: 100vh;
   height: 100dvh;
+}
+
+/* Subtle scrollbar styling for areas where we do want to show it */
+::-webkit-scrollbar {
+  width: 2px;
+  height: 2px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(212, 175, 55, 0.3);
+  border-radius: 2px;
 }
