@@ -128,6 +128,32 @@ export type SavingGoal = {
   deadline?: string;
 };
 
+// Subscriptions
+export type SubscriptionCategory =
+  | 'entertainment'
+  | 'software'
+  | 'cloud'
+  | 'news'
+  | 'fitness'
+  | 'music'
+  | 'other';
+
+export type BillingCycle = 'monthly' | 'yearly' | 'weekly';
+
+export type Subscription = {
+  id: string;
+  name: string;
+  amount: number;
+  cycle: BillingCycle;
+  nextCharge: string;
+  category: SubscriptionCategory;
+  active: boolean;
+  autoRenew: boolean;
+  color: string;
+  usageRating?: 1 | 2 | 3 | 4 | 5;
+  notes?: string;
+};
+
 // Wellness
 export type WaterLog = { date: string; cups: number };
 export type SleepLog = { date: string; hours: number };
@@ -269,6 +295,106 @@ const DEFAULT_SAVING_GOALS: SavingGoal[] = [
   { id: 'sg2', name: 'מחשב חדש', target: 8000, current: 6500 },
 ];
 
+const DEFAULT_SUBSCRIPTIONS: Subscription[] = [
+  {
+    id: 'sub1',
+    name: 'Netflix',
+    amount: 55,
+    cycle: 'monthly',
+    nextCharge: daysFromNow(3),
+    category: 'entertainment',
+    active: true,
+    autoRenew: true,
+    color: '#E50914',
+    usageRating: 5,
+  },
+  {
+    id: 'sub2',
+    name: 'Spotify Family',
+    amount: 32.9,
+    cycle: 'monthly',
+    nextCharge: daysFromNow(12),
+    category: 'music',
+    active: true,
+    autoRenew: true,
+    color: '#1DB954',
+    usageRating: 5,
+  },
+  {
+    id: 'sub3',
+    name: 'iCloud+ 200GB',
+    amount: 11.9,
+    cycle: 'monthly',
+    nextCharge: daysFromNow(8),
+    category: 'cloud',
+    active: true,
+    autoRenew: true,
+    color: '#0EA5E9',
+    usageRating: 4,
+  },
+  {
+    id: 'sub4',
+    name: 'ChatGPT Plus',
+    amount: 79,
+    cycle: 'monthly',
+    nextCharge: daysFromNow(1),
+    category: 'software',
+    active: true,
+    autoRenew: true,
+    color: '#10A37F',
+    usageRating: 5,
+  },
+  {
+    id: 'sub5',
+    name: 'Disney+',
+    amount: 29.9,
+    cycle: 'monthly',
+    nextCharge: daysFromNow(20),
+    category: 'entertainment',
+    active: true,
+    autoRenew: true,
+    color: '#0063E5',
+    usageRating: 2,
+    notes: 'כמעט לא משתמש — לשקול ביטול',
+  },
+  {
+    id: 'sub6',
+    name: 'Adobe Creative',
+    amount: 259,
+    cycle: 'monthly',
+    nextCharge: daysFromNow(15),
+    category: 'software',
+    active: true,
+    autoRenew: true,
+    color: '#FF0000',
+    usageRating: 3,
+  },
+  {
+    id: 'sub7',
+    name: 'Holmes Place',
+    amount: 1890,
+    cycle: 'yearly',
+    nextCharge: daysFromNow(65),
+    category: 'fitness',
+    active: true,
+    autoRenew: false,
+    color: '#D4AF37',
+    usageRating: 4,
+  },
+  {
+    id: 'sub8',
+    name: 'Haaretz Premium',
+    amount: 59,
+    cycle: 'monthly',
+    nextCharge: daysFromNow(5),
+    category: 'news',
+    active: true,
+    autoRenew: true,
+    color: '#6366F1',
+    usageRating: 3,
+  },
+];
+
 const DEFAULT_WATER_LOGS: WaterLog[] = [
   { date: today(), cups: 4 },
   { date: daysAgo(1).split('T')[0], cups: 6 },
@@ -339,7 +465,11 @@ type Store = {
   expenses: Expense[];
   budgets: Budget[];
   savingGoals: SavingGoal[];
+  subscriptions: Subscription[];
   addToSaving: (id: string, amount: number) => void;
+  toggleSubscription: (id: string) => void;
+  toggleAutoRenew: (id: string) => void;
+  renewSubscription: (id: string) => void;
 
   // Wellness
   waterLogs: WaterLog[];
@@ -447,12 +577,36 @@ export const useStore = create<Store>()(
       expenses: DEFAULT_EXPENSES,
       budgets: DEFAULT_BUDGETS,
       savingGoals: DEFAULT_SAVING_GOALS,
+      subscriptions: DEFAULT_SUBSCRIPTIONS,
 
       addToSaving: (id, amount) =>
         set((s) => ({
           savingGoals: s.savingGoals.map((g) =>
             g.id === id ? { ...g, current: g.current + amount } : g
           ),
+        })),
+
+      toggleSubscription: (id) =>
+        set((s) => ({
+          subscriptions: s.subscriptions.map((x) =>
+            x.id === id ? { ...x, active: !x.active } : x
+          ),
+        })),
+
+      toggleAutoRenew: (id) =>
+        set((s) => ({
+          subscriptions: s.subscriptions.map((x) =>
+            x.id === id ? { ...x, autoRenew: !x.autoRenew } : x
+          ),
+        })),
+
+      renewSubscription: (id) =>
+        set((s) => ({
+          subscriptions: s.subscriptions.map((x) => {
+            if (x.id !== id) return x;
+            const daysToAdd = x.cycle === 'yearly' ? 365 : x.cycle === 'weekly' ? 7 : 30;
+            return { ...x, nextCharge: daysFromNow(daysToAdd) };
+          }),
         })),
 
       // Wellness defaults

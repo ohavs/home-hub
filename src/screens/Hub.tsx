@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { Coffee, Utensils, Home as HomeIcon, Wallet, Heart, Bell, Calendar } from 'lucide-react';
+import { Coffee, Utensils, Home as HomeIcon, Wallet, Heart, Bell, Calendar, CreditCard } from 'lucide-react';
 import { useStore } from '@/src/data/store';
 import { Badge } from '@/src/components/ui/primitives';
 
@@ -13,6 +13,7 @@ export const DASHBOARDS = [
   { id: 'kitchen', name: 'מטבח חכם', subtitle: 'מלאי ומכשירי חשמל', icon: Utensils, color: '#1a332d' },
   { id: 'home', name: 'ניהול הבית', subtitle: 'תחזוקה ומשימות', icon: HomeIcon, color: '#1e2025' },
   { id: 'finance', name: 'כספים', subtitle: 'תקציב והוצאות', icon: Wallet, color: '#2a2440' },
+  { id: 'subscriptions', name: 'מנויים', subtitle: 'חיובים חוזרים', icon: CreditCard, color: '#1e3040' },
   { id: 'wellness', name: 'בריאות', subtitle: 'כושר ושגרה', icon: Heart, color: '#3a2530' },
 ] as const;
 
@@ -39,6 +40,7 @@ export function Hub({ onSelect }: HubProps) {
     inventory,
     shopping,
     medications,
+    subscriptions,
   } = useStore();
 
   // Alert counts per dashboard
@@ -51,18 +53,32 @@ export function Hub({ onSelect }: HubProps) {
   const homeAlerts = dailyTasks.filter((t) => !t.completed && t.frequency === 'daily').length;
   const billsDue = bills.filter((b) => !b.paid).length;
   const wellnessAlerts = medications.filter((m) => !m.taken && m.frequency === 'daily').length;
+  const upcomingSubs = subscriptions.filter(
+    (s) =>
+      s.active &&
+      new Date(s.nextCharge).getTime() - Date.now() < 86400000 * 7 &&
+      new Date(s.nextCharge).getTime() - Date.now() >= 0
+  ).length;
 
   const alertMap: Record<string, number> = {
     coffee: coffeeAlerts,
     kitchen: kitchenAlerts,
     home: homeAlerts,
     finance: billsDue,
+    subscriptions: upcomingSubs,
     wellness: wellnessAlerts,
   };
 
   const totalBeanWeight = beans.reduce((sum, b) => sum + b.weight, 0);
   const openTasks = dailyTasks.filter((t) => !t.completed).length;
   const criticalMaint = maintenance.filter((m) => m.progress >= 100).length;
+  const monthlySubsCost = subscriptions
+    .filter((s) => s.active)
+    .reduce((sum, s) => {
+      if (s.cycle === 'yearly') return sum + s.amount / 12;
+      if (s.cycle === 'weekly') return sum + s.amount * 4.33;
+      return sum + s.amount;
+    }, 0);
 
   return (
     <div className="flex flex-col w-full h-full pt-10 text-[#F5F5F5] z-10 overflow-y-auto hide-scrollbar">
@@ -83,9 +99,9 @@ export function Hub({ onSelect }: HubProps) {
           aria-label="התראות"
         >
           <Bell className="w-5 h-5 text-[#D4AF37]" />
-          {(coffeeAlerts + kitchenAlerts + homeAlerts + billsDue + wellnessAlerts) > 0 && (
+          {(coffeeAlerts + kitchenAlerts + homeAlerts + billsDue + wellnessAlerts + upcomingSubs) > 0 && (
             <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[#D4AF37] text-black text-[10px] font-bold flex items-center justify-center">
-              {coffeeAlerts + kitchenAlerts + homeAlerts + billsDue + wellnessAlerts}
+              {coffeeAlerts + kitchenAlerts + homeAlerts + billsDue + wellnessAlerts + upcomingSubs}
             </span>
           )}
         </button>
@@ -167,7 +183,7 @@ export function Hub({ onSelect }: HubProps) {
           <div className="grid grid-cols-2 gap-3 text-xs">
             <SnapshotRow label="משימות יומי" value={`${dailyTasks.filter(t=>t.completed && t.frequency==='daily').length}/${dailyTasks.filter(t=>t.frequency==='daily').length}`} />
             <SnapshotRow label="חשבונות לתשלום" value={billsDue.toString()} danger={billsDue > 0} />
-            <SnapshotRow label="מוצרי קניות" value={shopping.filter(s=>!s.checked).length.toString()} />
+            <SnapshotRow label="מנויים/חודש" value={`₪${Math.round(monthlySubsCost)}`} />
             <SnapshotRow label="תרופות נותרו" value={wellnessAlerts.toString()} danger={wellnessAlerts > 0} />
           </div>
         </div>

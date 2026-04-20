@@ -6,6 +6,7 @@ import { KitchenDashboard } from './screens/Kitchen';
 import { HomeDashboard } from './screens/Home';
 import { FinanceDashboard } from './screens/Finance';
 import { WellnessDashboard } from './screens/Wellness';
+import { SubscriptionsDashboard } from './screens/Subscriptions';
 
 export default function App() {
   const [activeScreen, setActiveScreen] = useState<string>('hub');
@@ -56,6 +57,9 @@ export default function App() {
         )}
         {activeScreen === 'wellness' && (
           <WellnessDashboard key="wellness" onBack={handleBack} color={activeColor} />
+        )}
+        {activeScreen === 'subscriptions' && (
+          <SubscriptionsDashboard key="subscriptions" onBack={handleBack} color={activeColor} />
         )}
       </AnimatePresence>
     </div>
