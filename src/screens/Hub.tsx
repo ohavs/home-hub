@@ -34,7 +34,6 @@ function formatHebrewDate() {
 export function Hub({ onSelect }: HubProps) {
   const {
     maintenance,
-    beans,
     dailyTasks,
     bills,
     inventory,
@@ -69,9 +68,6 @@ export function Hub({ onSelect }: HubProps) {
     wellness: wellnessAlerts,
   };
 
-  const totalBeanWeight = beans.reduce((sum, b) => sum + b.weight, 0);
-  const openTasks = dailyTasks.filter((t) => !t.completed).length;
-  const criticalMaint = maintenance.filter((m) => m.progress >= 100).length;
   const monthlySubsCost = subscriptions
     .filter((s) => s.active)
     .reduce((sum, s) => {
@@ -83,7 +79,7 @@ export function Hub({ onSelect }: HubProps) {
   return (
     <div className="flex flex-col w-full h-full pt-10 text-[#F5F5F5] z-10 overflow-y-auto hide-scrollbar">
       {/* Header */}
-      <header className="px-6 mb-6 flex items-start justify-between">
+      <header className="px-6 mb-8 flex items-start justify-between">
         <div>
           <span className="text-[10px] uppercase tracking-[0.2em] text-[#D4AF37] opacity-80 mb-1 block font-semibold">
             {getGreeting()}
@@ -106,13 +102,6 @@ export function Hub({ onSelect }: HubProps) {
           )}
         </button>
       </header>
-
-      {/* Quick stats */}
-      <div className="px-6 grid grid-cols-3 gap-3 mb-8">
-        <StatCard label="פולים" value={`${totalBeanWeight}g`} tone="gold" />
-        <StatCard label="משימות פתוחות" value={openTasks} tone={openTasks > 2 ? 'warn' : 'gold'} />
-        <StatCard label="תחזוקה דחופה" value={criticalMaint} tone={criticalMaint > 0 ? 'danger' : 'muted'} />
-      </div>
 
       {/* Dashboards carousel */}
       <div className="mb-3 px-6">
@@ -188,29 +177,6 @@ export function Hub({ onSelect }: HubProps) {
           </div>
         </div>
       </div>
-    </div>
-  );
-}
-
-function StatCard({
-  label,
-  value,
-  tone,
-}: {
-  label: string;
-  value: string | number;
-  tone: 'gold' | 'warn' | 'danger' | 'muted';
-}) {
-  const toneColors = {
-    gold: 'text-[#D4AF37]',
-    warn: 'text-amber-400',
-    danger: 'text-red-400',
-    muted: 'text-white/60',
-  };
-  return (
-    <div className="bg-[#111111] border border-white/5 rounded-2xl p-3 flex flex-col items-center justify-center text-center">
-      <span className="text-[9px] uppercase tracking-widest text-white/40 mb-1">{label}</span>
-      <span className={`text-2xl font-display font-light ${toneColors[tone]}`}>{value}</span>
     </div>
   );
 }
