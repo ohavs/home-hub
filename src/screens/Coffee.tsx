@@ -40,7 +40,7 @@ export function CoffeeDashboard({ onBack, color }: { onBack: () => void; color: 
         <SectionHeader title="מלאי פולים" subtitle={`${beans.length} זנים`} />
         <div className="grid gap-3">
           {beans.map((bean) => (
-            <BeanRow key={bean.id} bean={bean} />
+            <BeanRow key={bean.id} bean={bean} editMode={editMode} />
           ))}
         </div>
       </section>
@@ -160,12 +160,106 @@ function MaintenanceRing({
   );
 }
 
-function BeanRow({ bean }: { bean: CoffeeBag }) {
+function BeanRow({ bean, editMode }: { bean: CoffeeBag; editMode: boolean }) {
+  const { updateBean, deleteBean } = useStore();
   const [open, setOpen] = useState(false);
   const roastAge = bean.roastDate
     ? Math.floor((Date.now() - new Date(bean.roastDate).getTime()) / 86400000)
     : null;
   const isFresh = roastAge !== null && roastAge <= 21 && roastAge >= 5;
+
+  if (editMode) {
+    const tp = bean.tasteProfile ?? { acidity: 0, body: 0, sweetness: 0, bitterness: 0 };
+    const setTaste = (key: keyof typeof tp, v: number) =>
+      updateBean(bean.id, { tasteProfile: { ...tp, [key]: v } });
+
+    return (
+      <Card className="p-4 border-[#D4AF37]/30 space-y-3">
+        {/* Name */}
+        <input
+          className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-[#F5F5F5] w-full text-right"
+          value={bean.name}
+          onChange={(e) => updateBean(bean.id, { name: e.target.value })}
+        />
+
+        {/* Weight + Price */}
+        <div className="grid grid-cols-2 gap-2">
+          <BeanStepper
+            label="g"
+            value={bean.weight}
+            step={10}
+            min={0}
+            onChange={(v) => updateBean(bean.id, { weight: v })}
+          />
+          <BeanStepper
+            label="₪"
+            value={bean.price}
+            step={5}
+            min={0}
+            onChange={(v) => updateBean(bean.id, { price: v })}
+          />
+        </div>
+
+        {/* Rating */}
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] text-white/40 shrink-0">דירוג</span>
+          <div className="flex gap-1">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <button
+                key={i}
+                onClick={() => updateBean(bean.id, { rating: i + 1 })}
+                className={cn('text-lg transition-opacity', i < bean.rating ? 'text-[#D4AF37]' : 'text-white/20')}
+              >
+                ★
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Origin + Roaster */}
+        <div className="grid grid-cols-2 gap-2">
+          <input
+            className="bg-white/5 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-[#F5F5F5] text-right"
+            placeholder="מקור"
+            value={bean.origin}
+            onChange={(e) => updateBean(bean.id, { origin: e.target.value })}
+          />
+          <input
+            className="bg-white/5 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-[#F5F5F5] text-right"
+            placeholder="קלייה"
+            value={bean.roaster}
+            onChange={(e) => updateBean(bean.id, { roaster: e.target.value })}
+          />
+        </div>
+
+        {/* Notes */}
+        <textarea
+          className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-[#F5F5F5] w-full text-right resize-none leading-relaxed"
+          rows={2}
+          placeholder="הערות..."
+          value={bean.notes ?? ''}
+          onChange={(e) => updateBean(bean.id, { notes: e.target.value })}
+        />
+
+        {/* Taste profile */}
+        <div className="space-y-2 pt-1">
+          <span className="text-[9px] uppercase tracking-widest text-white/30">פרופיל טעמים</span>
+          <TasteBar label="חומציות" value={tp.acidity} onChange={(v) => setTaste('acidity', v)} />
+          <TasteBar label="גוף" value={tp.body} onChange={(v) => setTaste('body', v)} />
+          <TasteBar label="מתיקות" value={tp.sweetness} onChange={(v) => setTaste('sweetness', v)} />
+          <TasteBar label="מרירות" value={tp.bitterness} onChange={(v) => setTaste('bitterness', v)} />
+        </div>
+
+        {/* Delete */}
+        <button
+          onClick={() => deleteBean(bean.id)}
+          className="flex items-center justify-center gap-1 text-[9px] text-red-400/70 hover:text-red-400 transition-colors pt-2 border-t border-white/5 w-full"
+        >
+          <Trash2 className="w-3 h-3" /> מחק פול
+        </button>
+      </Card>
+    );
+  }
 
   return (
     <Card className="p-0 overflow-hidden">
@@ -230,7 +324,37 @@ function BeanRow({ bean }: { bean: CoffeeBag }) {
   );
 }
 
-function TasteBar({ label, value }: { label: string; value: number }) {
+function BeanStepper({
+  label,
+  value,
+  step,
+  min,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  step: number;
+  min: number;
+  onChange: (v: number) => void;
+}) {
+  return (
+    <div className="flex items-center gap-1 bg-white/5 border border-white/10 rounded-xl px-2 py-1.5 justify-between">
+      <button
+        className="w-5 h-5 flex items-center justify-center text-white/50 hover:text-white"
+        onClick={() => onChange(Math.max(min, value - step))}
+      >−</button>
+      <span className="text-xs font-mono-num text-white">
+        {value}<span className="text-white/40 ml-0.5">{label}</span>
+      </span>
+      <button
+        className="w-5 h-5 flex items-center justify-center text-white/50 hover:text-white"
+        onClick={() => onChange(value + step)}
+      >+</button>
+    </div>
+  );
+}
+
+function TasteBar({ label, value, onChange }: { label: string; value: number; onChange?: (v: number) => void }) {
   return (
     <div className="flex items-center gap-3">
       <span className="text-[10px] text-white/50 w-16 shrink-0">{label}</span>
@@ -238,9 +362,11 @@ function TasteBar({ label, value }: { label: string; value: number }) {
         {Array.from({ length: 5 }).map((_, i) => (
           <div
             key={i}
+            onClick={() => onChange?.(i + 1)}
             className={cn(
-              'flex-1 h-1.5 rounded-full',
-              i < value ? 'bg-[#D4AF37]' : 'bg-white/10'
+              'flex-1 h-1.5 rounded-full transition-colors',
+              i < value ? 'bg-[#D4AF37]' : 'bg-white/10',
+              onChange && 'cursor-pointer hover:bg-[#D4AF37]/50'
             )}
           />
         ))}

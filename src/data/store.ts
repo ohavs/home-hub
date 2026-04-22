@@ -443,6 +443,8 @@ type Store = {
   resetMaintenance: (id: string) => void;
   updateMaintenance: (id: string, changes: Partial<Pick<MaintenanceAction, 'name' | 'intervalValue' | 'intervalUnit'>>) => void;
   deleteMaintenance: (id: string) => void;
+  updateBean: (id: string, changes: Partial<Omit<CoffeeBag, 'id'>>) => void;
+  deleteBean: (id: string) => void;
   refillBoiler: () => void;
   consumeWater: (amount: number) => void;
   updateBeanWeight: (id: string, delta: number) => void;
@@ -516,6 +518,14 @@ export const useStore = create<Store>()(
 
       deleteMaintenance: (id) =>
         set((s) => ({ maintenance: s.maintenance.filter((m) => m.id !== id) })),
+
+      updateBean: (id, changes) =>
+        set((s) => ({
+          beans: s.beans.map((b) => (b.id === id ? { ...b, ...changes } : b)),
+        })),
+
+      deleteBean: (id) =>
+        set((s) => ({ beans: s.beans.filter((b) => b.id !== id) })),
 
       refillBoiler: () => set({ boilerWater: 100 }),
 
