@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useStore, CoffeeBag, MaintenanceAction } from '@/src/data/store';
-import { CheckCircle2, Coffee as CoffeeIcon, Calendar, Flame, Trash2 } from 'lucide-react';
+import { CheckCircle2, Coffee as CoffeeIcon, Calendar, Flame, Trash2, Bell, BellOff } from 'lucide-react';
 import { cn } from '@/src/lib/utils';
 import {
   Card,
@@ -63,9 +63,10 @@ function MaintenanceRing({
   onReset: (id: string) => void;
   editMode: boolean;
 }) {
-  const { updateMaintenance, deleteMaintenance } = useStore();
+  const { updateMaintenance, deleteMaintenance, toggleMaintenanceAlert } = useStore();
   const [isResetting, setIsResetting] = useState(false);
   const isCritical = item.progress >= 100;
+  const isWarning = item.progress >= 80;
 
   const handleReset = () => {
     setIsResetting(true);
@@ -113,6 +114,20 @@ function MaintenanceRing({
             </button>
           ))}
         </div>
+        {/* Alert toggle */}
+        <button
+          onClick={() => toggleMaintenanceAlert(item.id)}
+          className={cn(
+            'flex items-center justify-between w-full px-3 py-2 rounded-xl border transition-all',
+            item.alertEnabled
+              ? 'bg-[#D4AF37]/10 border-[#D4AF37]/30 text-[#D4AF37]'
+              : 'bg-white/5 border-white/10 text-white/40'
+          )}
+        >
+          <span className="text-[10px] font-semibold">התראות</span>
+          {item.alertEnabled ? <Bell className="w-3.5 h-3.5" /> : <BellOff className="w-3.5 h-3.5" />}
+        </button>
+
         <button
           onClick={() => deleteMaintenance(item.id)}
           className="flex items-center justify-center gap-1 text-[9px] text-red-400/70 hover:text-red-400 transition-colors pt-1 border-t border-white/5"
@@ -146,9 +161,14 @@ function MaintenanceRing({
       <span className="text-[8px] text-white/30 mt-0.5">
         כל {item.intervalValue} {UNIT_LABELS[item.intervalUnit]}
       </span>
-      {isCritical && (
-        <span className="text-[8px] text-red-400 uppercase tracking-widest mt-1">דחוף</span>
-      )}
+      <div className="flex items-center gap-1.5 mt-1">
+        {isCritical && (
+          <span className="text-[8px] text-red-400 uppercase tracking-widest">דחוף</span>
+        )}
+        {item.alertEnabled && isWarning && (
+          <Bell className="w-2.5 h-2.5 text-[#D4AF37] opacity-70" />
+        )}
+      </div>
       <button
         onClick={handleReset}
         disabled={isResetting}

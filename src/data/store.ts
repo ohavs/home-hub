@@ -39,6 +39,7 @@ export type MaintenanceAction = {
   progress: number;
   intervalValue: number;
   intervalUnit: 'days' | 'weeks' | 'months';
+  alertEnabled: boolean;
 };
 
 export type BrewLog = {
@@ -212,10 +213,10 @@ const DEFAULT_RECIPES: Recipe[] = [
 ];
 
 const DEFAULT_MAINTENANCE: MaintenanceAction[] = [
-  { id: 'm1', name: 'ניקוי מכונה', dueDate: daysFromNow(2), progress: 85, intervalValue: 14, intervalUnit: 'days' },
-  { id: 'm2', name: 'פילטר פנימי', dueDate: daysFromNow(15), progress: 50, intervalValue: 2, intervalUnit: 'months' },
-  { id: 'm3', name: 'פילטר בריטה', dueDate: daysAgo(1), progress: 100, intervalValue: 1, intervalUnit: 'months' },
-  { id: 'm4', name: 'Descaling', dueDate: daysFromNow(40), progress: 30, intervalValue: 3, intervalUnit: 'months' },
+  { id: 'm1', name: 'ניקוי מכונה', dueDate: daysFromNow(2), progress: 85, intervalValue: 14, intervalUnit: 'days', alertEnabled: true },
+  { id: 'm2', name: 'פילטר פנימי', dueDate: daysFromNow(15), progress: 50, intervalValue: 2, intervalUnit: 'months', alertEnabled: true },
+  { id: 'm3', name: 'פילטר בריטה', dueDate: daysAgo(1), progress: 100, intervalValue: 1, intervalUnit: 'months', alertEnabled: true },
+  { id: 'm4', name: 'Descaling', dueDate: daysFromNow(40), progress: 30, intervalValue: 3, intervalUnit: 'months', alertEnabled: false },
 ];
 
 const DEFAULT_BREW_LOGS: BrewLog[] = [
@@ -443,6 +444,7 @@ type Store = {
   resetMaintenance: (id: string) => void;
   updateMaintenance: (id: string, changes: Partial<Pick<MaintenanceAction, 'name' | 'intervalValue' | 'intervalUnit'>>) => void;
   deleteMaintenance: (id: string) => void;
+  toggleMaintenanceAlert: (id: string) => void;
   updateBean: (id: string, changes: Partial<Omit<CoffeeBag, 'id'>>) => void;
   deleteBean: (id: string) => void;
   refillBoiler: () => void;
@@ -518,6 +520,13 @@ export const useStore = create<Store>()(
 
       deleteMaintenance: (id) =>
         set((s) => ({ maintenance: s.maintenance.filter((m) => m.id !== id) })),
+
+      toggleMaintenanceAlert: (id) =>
+        set((s) => ({
+          maintenance: s.maintenance.map((m) =>
+            m.id === id ? { ...m, alertEnabled: !m.alertEnabled } : m
+          ),
+        })),
 
       updateBean: (id, changes) =>
         set((s) => ({
