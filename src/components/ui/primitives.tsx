@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { cn } from '@/src/lib/utils';
-import { Plus, LucideIcon } from 'lucide-react';
+import { Plus, LucideIcon, Pencil, Check } from 'lucide-react';
 
 // ─────────────────────────────────────────
 // Card
@@ -210,6 +210,8 @@ export function DashboardFrame({
   layoutIdBase,
   children,
   headerExtra,
+  editMode,
+  onToggleEdit,
 }: {
   onBack: () => void;
   color: string;
@@ -218,6 +220,8 @@ export function DashboardFrame({
   layoutIdBase: string;
   children: React.ReactNode;
   headerExtra?: React.ReactNode;
+  editMode?: boolean;
+  onToggleEdit?: () => void;
 }) {
   return (
     <motion.div
@@ -225,16 +229,19 @@ export function DashboardFrame({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      drag="x"
+      drag={editMode ? false : 'x'}
       dragConstraints={{ left: 0, right: 0 }}
       dragElastic={0.2}
       onDragEnd={(_e, { offset, velocity }) => {
-        if (offset.x > 100 || velocity.x > 200) onBack();
+        if (!editMode && (offset.x > 100 || velocity.x > 200)) onBack();
       }}
     >
       <motion.header
         layoutId={`card-container-${layoutIdBase}`}
-        className="w-full pt-16 pb-8 px-6 relative shrink-0 rounded-b-[40px] border-b border-white/5"
+        className={cn(
+          'w-full pt-16 pb-8 px-6 relative shrink-0 rounded-b-[40px] border-b transition-colors',
+          editMode ? 'border-[#D4AF37]/40' : 'border-white/5'
+        )}
         style={{ background: `linear-gradient(145deg, ${color}dd 0%, #111111 100%)` }}
       >
         <button
@@ -246,6 +253,24 @@ export function DashboardFrame({
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
           </svg>
         </button>
+        {onToggleEdit && (
+          <button
+            onClick={onToggleEdit}
+            className={cn(
+              'absolute top-6 left-6 w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-md border z-20 active:scale-90 transition-all',
+              editMode
+                ? 'bg-[#D4AF37] border-[#D4AF37]'
+                : 'bg-black/30 border-white/10'
+            )}
+            aria-label={editMode ? 'סיים עריכה' : 'ערוך'}
+          >
+            {editMode ? (
+              <Check className="w-5 h-5 text-black" strokeWidth={2.5} />
+            ) : (
+              <Pencil className="w-4 h-4 text-[#D4AF37]" />
+            )}
+          </button>
+        )}
         <div className="flex flex-col z-10 relative mt-4">
           <motion.span
             layoutId={`card-sub-${layoutIdBase}`}
@@ -253,12 +278,23 @@ export function DashboardFrame({
           >
             {subtitle}
           </motion.span>
-          <motion.h1
-            layoutId={`card-title-${layoutIdBase}`}
-            className="text-4xl font-display font-light tracking-tight drop-shadow-md"
-          >
-            {title}
-          </motion.h1>
+          <div className="flex items-center gap-3">
+            <motion.h1
+              layoutId={`card-title-${layoutIdBase}`}
+              className="text-4xl font-display font-light tracking-tight drop-shadow-md"
+            >
+              {title}
+            </motion.h1>
+            {editMode && (
+              <motion.span
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="px-2 py-0.5 rounded-full bg-[#D4AF37] text-black text-[10px] font-bold uppercase tracking-widest"
+              >
+                עריכה
+              </motion.span>
+            )}
+          </div>
           {headerExtra && <div className="mt-4">{headerExtra}</div>}
         </div>
       </motion.header>

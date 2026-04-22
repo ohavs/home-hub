@@ -37,7 +37,8 @@ export type MaintenanceAction = {
   name: string;
   dueDate: string;
   progress: number;
-  intervalDays: number;
+  intervalValue: number;
+  intervalUnit: 'days' | 'weeks' | 'months';
 };
 
 export type BrewLog = {
@@ -173,6 +174,8 @@ export type MoodLog = { date: string; mood: 1 | 2 | 3 | 4 | 5; note?: string };
 const today = () => new Date().toISOString().split('T')[0];
 const daysFromNow = (days: number) => new Date(Date.now() + 86400000 * days).toISOString();
 const daysAgo = (days: number) => new Date(Date.now() - 86400000 * days).toISOString();
+const intervalToDays = (value: number, unit: 'days' | 'weeks' | 'months') =>
+  unit === 'weeks' ? value * 7 : unit === 'months' ? value * 30 : value;
 
 const DEFAULT_BEANS: CoffeeBag[] = [
   {
@@ -209,10 +212,10 @@ const DEFAULT_RECIPES: Recipe[] = [
 ];
 
 const DEFAULT_MAINTENANCE: MaintenanceAction[] = [
-  { id: 'm1', name: 'ניקוי מכונה', dueDate: daysFromNow(2), progress: 85, intervalDays: 14 },
-  { id: 'm2', name: 'פילטר פנימי', dueDate: daysFromNow(15), progress: 50, intervalDays: 60 },
-  { id: 'm3', name: 'פילטר בריטה', dueDate: daysAgo(1), progress: 100, intervalDays: 30 },
-  { id: 'm4', name: 'Descaling', dueDate: daysFromNow(40), progress: 30, intervalDays: 90 },
+  { id: 'm1', name: 'ניקוי מכונה', dueDate: daysFromNow(2), progress: 85, intervalValue: 14, intervalUnit: 'days' },
+  { id: 'm2', name: 'פילטר פנימי', dueDate: daysFromNow(15), progress: 50, intervalValue: 2, intervalUnit: 'months' },
+  { id: 'm3', name: 'פילטר בריטה', dueDate: daysAgo(1), progress: 100, intervalValue: 1, intervalUnit: 'months' },
+  { id: 'm4', name: 'Descaling', dueDate: daysFromNow(40), progress: 30, intervalValue: 3, intervalUnit: 'months' },
 ];
 
 const DEFAULT_BREW_LOGS: BrewLog[] = [
@@ -438,6 +441,8 @@ type Store = {
   boilerWater: number;
   addBrewLog: (log: Omit<BrewLog, 'id'>) => void;
   resetMaintenance: (id: string) => void;
+  updateMaintenance: (id: string, changes: Partial<Pick<MaintenanceAction, 'name' | 'intervalValue' | 'intervalUnit'>>) => void;
+  deleteMaintenance: (id: string) => void;
   refillBoiler: () => void;
   consumeWater: (amount: number) => void;
   updateBeanWeight: (id: string, delta: number) => void;
@@ -498,9 +503,19 @@ export const useStore = create<Store>()(
       resetMaintenance: (id) =>
         set((s) => ({
           maintenance: s.maintenance.map((m) =>
-            m.id === id ? { ...m, progress: 0, dueDate: daysFromNow(m.intervalDays) } : m
+            m.id === id
+              ? { ...m, progress: 0, dueDate: daysFromNow(intervalToDays(m.intervalValue, m.intervalUnit)) }
+              : m
           ),
         })),
+
+      updateMaintenance: (id, changes) =>
+        set((s) => ({
+          maintenance: s.maintenance.map((m) => (m.id === id ? { ...m, ...changes } : m)),
+        })),
+
+      deleteMaintenance: (id) =>
+        set((s) => ({ maintenance: s.maintenance.filter((m) => m.id !== id) })),
 
       refillBoiler: () => set({ boilerWater: 100 }),
 

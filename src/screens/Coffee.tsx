@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useStore, CoffeeBag, MaintenanceAction } from '@/src/data/store';
-import { CheckCircle2, Coffee as CoffeeIcon, Calendar, Flame } from 'lucide-react';
+import { CheckCircle2, Coffee as CoffeeIcon, Calendar, Flame, Trash2 } from 'lucide-react';
 import { cn } from '@/src/lib/utils';
 import {
   Card,
@@ -13,6 +13,7 @@ import {
 
 export function CoffeeDashboard({ onBack, color }: { onBack: () => void; color: string }) {
   const { beans, maintenance, resetMaintenance } = useStore();
+  const [editMode, setEditMode] = useState(false);
 
   return (
     <DashboardFrame
@@ -21,13 +22,15 @@ export function CoffeeDashboard({ onBack, color }: { onBack: () => void; color: 
       title="מרכז הקפה"
       subtitle="תחזוקה ומלאי פולים"
       layoutIdBase="coffee"
+      editMode={editMode}
+      onToggleEdit={() => setEditMode((v) => !v)}
     >
       {/* Maintenance */}
       <section>
         <SectionHeader title="מצב המכונה" />
         <div className="flex overflow-x-auto hide-scrollbar gap-3 pb-2 snap-x -mx-6 px-6">
           {maintenance.map((item) => (
-            <MaintenanceRing key={item.id} item={item} onReset={resetMaintenance} />
+            <MaintenanceRing key={item.id} item={item} onReset={resetMaintenance} editMode={editMode} />
           ))}
         </div>
       </section>
@@ -45,28 +48,84 @@ export function CoffeeDashboard({ onBack, color }: { onBack: () => void; color: 
   );
 }
 
+const UNIT_LABELS: Record<MaintenanceAction['intervalUnit'], string> = {
+  days: 'ימים',
+  weeks: 'שבועות',
+  months: 'חודשים',
+};
+
 function MaintenanceRing({
   item,
   onReset,
+  editMode,
 }: {
   item: MaintenanceAction;
   onReset: (id: string) => void;
+  editMode: boolean;
 }) {
+  const { updateMaintenance, deleteMaintenance } = useStore();
   const [isResetting, setIsResetting] = useState(false);
   const isCritical = item.progress >= 100;
 
+  const handleReset = () => {
+    setIsResetting(true);
+    setTimeout(() => {
+      onReset(item.id);
+      setIsResetting(false);
+    }, 600);
+  };
+
+  if (editMode) {
+    return (
+      <div className="bg-[#111111] p-4 rounded-[2rem] border border-[#D4AF37]/30 w-[200px] flex flex-col gap-3 shrink-0 snap-center">
+        <input
+          className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-[#F5F5F5] w-full text-right"
+          value={item.name}
+          onChange={(e) => updateMaintenance(item.id, { name: e.target.value })}
+        />
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] text-white/40 shrink-0">כל</span>
+          <div className="flex items-center gap-1 bg-white/5 border border-white/10 rounded-full px-2 py-0.5">
+            <button
+              className="w-5 h-5 flex items-center justify-center text-white/60 hover:text-white"
+              onClick={() => updateMaintenance(item.id, { intervalValue: Math.max(1, item.intervalValue - 1) })}
+            >−</button>
+            <span className="text-sm font-mono-num text-white w-5 text-center">{item.intervalValue}</span>
+            <button
+              className="w-5 h-5 flex items-center justify-center text-white/60 hover:text-white"
+              onClick={() => updateMaintenance(item.id, { intervalValue: item.intervalValue + 1 })}
+            >+</button>
+          </div>
+        </div>
+        <div className="flex gap-1">
+          {(['days', 'weeks', 'months'] as const).map((u) => (
+            <button
+              key={u}
+              onClick={() => updateMaintenance(item.id, { intervalUnit: u })}
+              className={cn(
+                'flex-1 py-1 rounded-full text-[9px] font-semibold transition-colors',
+                item.intervalUnit === u
+                  ? 'bg-[#D4AF37] text-black'
+                  : 'bg-white/5 text-white/40'
+              )}
+            >
+              {UNIT_LABELS[u]}
+            </button>
+          ))}
+        </div>
+        <button
+          onClick={() => deleteMaintenance(item.id)}
+          className="flex items-center justify-center gap-1 text-[9px] text-red-400/70 hover:text-red-400 transition-colors pt-1 border-t border-white/5"
+        >
+          <Trash2 className="w-3 h-3" /> מחק
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-[#111111] p-4 rounded-[2rem] border border-white/5 min-w-[130px] flex flex-col items-center shrink-0 snap-center">
-      <div
-        className="relative mb-2 cursor-pointer active:scale-95 transition-transform"
-        onClick={() => {
-          setIsResetting(true);
-          setTimeout(() => {
-            onReset(item.id);
-            setIsResetting(false);
-          }, 600);
-        }}
-      >
+      <div className="relative mb-2">
         <ProgressRing
           progress={item.progress}
           size={62}
@@ -84,9 +143,19 @@ function MaintenanceRing({
       <span className="text-[10px] text-[#F5F5F5] text-center opacity-80 mt-1 whitespace-nowrap">
         {item.name}
       </span>
+      <span className="text-[8px] text-white/30 mt-0.5">
+        כל {item.intervalValue} {UNIT_LABELS[item.intervalUnit]}
+      </span>
       {isCritical && (
         <span className="text-[8px] text-red-400 uppercase tracking-widest mt-1">דחוף</span>
       )}
+      <button
+        onClick={handleReset}
+        disabled={isResetting}
+        className="mt-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[9px] text-white/50 active:scale-95 transition-all hover:bg-[#D4AF37]/10 hover:text-[#D4AF37] hover:border-[#D4AF37]/20"
+      >
+        {isResetting ? '✓' : 'ניקיתי'}
+      </button>
     </div>
   );
 }
