@@ -1,5 +1,15 @@
 {
   "projects": {
     "default": "master-home-hub"
-  }
+  },
+  "targets": {
+    "master-home-hub": {
+      "hosting": {
+        "main": [
+          "master-home-hub"
+        ]
+      }
+    }
+  },
+  "etags": {}
 }
