@@ -15,6 +15,7 @@ export type CoffeeBag = {
   price: number;
   rating: number;
   imageColor: string;
+  imageUrl?: string;
   roastDate?: string;
   notes?: string;
   tasteProfile?: { acidity: number; body: number; sweetness: number; bitterness: number };
@@ -442,9 +443,11 @@ type Store = {
   boilerWater: number;
   addBrewLog: (log: Omit<BrewLog, 'id'>) => void;
   resetMaintenance: (id: string) => void;
+  addMaintenance: () => void;
   updateMaintenance: (id: string, changes: Partial<Pick<MaintenanceAction, 'name' | 'intervalValue' | 'intervalUnit'>>) => void;
   deleteMaintenance: (id: string) => void;
   toggleMaintenanceAlert: (id: string) => void;
+  addBean: () => void;
   updateBean: (id: string, changes: Partial<Omit<CoffeeBag, 'id'>>) => void;
   deleteBean: (id: string) => void;
   refillBoiler: () => void;
@@ -513,6 +516,22 @@ export const useStore = create<Store>()(
           ),
         })),
 
+      addMaintenance: () =>
+        set((s) => ({
+          maintenance: [
+            ...s.maintenance,
+            {
+              id: `m${Date.now()}`,
+              name: 'תחזוקה חדשה',
+              dueDate: daysFromNow(30),
+              progress: 0,
+              intervalValue: 1,
+              intervalUnit: 'months',
+              alertEnabled: true,
+            },
+          ],
+        })),
+
       updateMaintenance: (id, changes) =>
         set((s) => ({
           maintenance: s.maintenance.map((m) => (m.id === id ? { ...m, ...changes } : m)),
@@ -526,6 +545,26 @@ export const useStore = create<Store>()(
           maintenance: s.maintenance.map((m) =>
             m.id === id ? { ...m, alertEnabled: !m.alertEnabled } : m
           ),
+        })),
+
+      addBean: () =>
+        set((s) => ({
+          beans: [
+            ...s.beans,
+            {
+              id: `bean${Date.now()}`,
+              name: 'פול חדש',
+              origin: '',
+              roaster: '',
+              weight: 250,
+              price: 0,
+              rating: 0,
+              imageColor: '#382a20',
+              roastDate: new Date().toISOString(),
+              notes: '',
+              tasteProfile: { acidity: 0, body: 0, sweetness: 0, bitterness: 0 },
+            },
+          ],
         })),
 
       updateBean: (id, changes) =>
@@ -683,6 +722,35 @@ export const useStore = create<Store>()(
           return { moodLogs: [...s.moodLogs, { date: d, mood }] };
         }),
     }),
-    { name: 'home-hub-store' }
+    {
+      name: 'home-hub-store',
+      version: 2,
+      migrate: (persistedState, version) => {
+        if (!persistedState || typeof persistedState !== 'object') return persistedState;
+        const state = persistedState as Record<string, unknown>;
+        if (version < 2 && Array.isArray(state.maintenance)) {
+          state.maintenance = (state.maintenance as Array<Record<string, unknown>>).map((m) => {
+            const out = { ...m };
+            if (out.intervalValue === undefined) {
+              const days = typeof out.intervalDays === 'number' ? out.intervalDays : 30;
+              if (days % 30 === 0) {
+                out.intervalValue = days / 30;
+                out.intervalUnit = 'months';
+              } else if (days % 7 === 0) {
+                out.intervalValue = days / 7;
+                out.intervalUnit = 'weeks';
+              } else {
+                out.intervalValue = days;
+                out.intervalUnit = 'days';
+              }
+              delete out.intervalDays;
+            }
+            if (out.alertEnabled === undefined) out.alertEnabled = true;
+            return out;
+          });
+        }
+        return state;
+      },
+    }
   )
 );

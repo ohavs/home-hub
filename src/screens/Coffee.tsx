@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useStore, CoffeeBag, MaintenanceAction } from '@/src/data/store';
-import { CheckCircle2, Coffee as CoffeeIcon, Calendar, Flame, Trash2, Bell, BellOff } from 'lucide-react';
+import { CheckCircle2, Coffee as CoffeeIcon, Calendar, Flame, Trash2, Bell, BellOff, ImagePlus, X } from 'lucide-react';
 import { cn } from '@/src/lib/utils';
 import {
   Card,
@@ -12,7 +12,7 @@ import {
 } from '@/src/components/ui/primitives';
 
 export function CoffeeDashboard({ onBack, color }: { onBack: () => void; color: string }) {
-  const { beans, maintenance, resetMaintenance } = useStore();
+  const { beans, maintenance, resetMaintenance, addMaintenance, addBean } = useStore();
   const [editMode, setEditMode] = useState(false);
 
   return (
@@ -27,7 +27,10 @@ export function CoffeeDashboard({ onBack, color }: { onBack: () => void; color: 
     >
       {/* Maintenance */}
       <section>
-        <SectionHeader title="מצב המכונה" />
+        <SectionHeader
+          title="מצב המכונה"
+          action={editMode ? { label: 'הוסף', onClick: addMaintenance } : undefined}
+        />
         <div className="flex overflow-x-auto hide-scrollbar gap-3 pb-2 snap-x -mx-6 px-6">
           {maintenance.map((item) => (
             <MaintenanceRing key={item.id} item={item} onReset={resetMaintenance} editMode={editMode} />
@@ -37,7 +40,11 @@ export function CoffeeDashboard({ onBack, color }: { onBack: () => void; color: 
 
       {/* Beans */}
       <section>
-        <SectionHeader title="מלאי פולים" subtitle={`${beans.length} זנים`} />
+        <SectionHeader
+          title="מלאי פולים"
+          subtitle={`${beans.length} זנים`}
+          action={editMode ? { label: 'הוסף', onClick: addBean } : undefined}
+        />
         <div className="grid gap-3">
           {beans.map((bean) => (
             <BeanRow key={bean.id} bean={bean} editMode={editMode} />
@@ -192,9 +199,54 @@ function BeanRow({ bean, editMode }: { bean: CoffeeBag; editMode: boolean }) {
     const tp = bean.tasteProfile ?? { acidity: 0, body: 0, sweetness: 0, bitterness: 0 };
     const setTaste = (key: keyof typeof tp, v: number) =>
       updateBean(bean.id, { tasteProfile: { ...tp, [key]: v } });
+    const onPickImage = async (file: File | undefined) => {
+      if (!file) return;
+      try {
+        const dataUrl = await compressImage(file);
+        updateBean(bean.id, { imageUrl: dataUrl });
+      } catch {
+        /* ignore */
+      }
+    };
 
     return (
       <Card className="p-4 border-[#D4AF37]/30 space-y-3">
+        {/* Image picker */}
+        <label
+          className={cn(
+            'relative flex items-center justify-center w-full h-28 rounded-xl border border-dashed cursor-pointer overflow-hidden',
+            bean.imageUrl ? 'border-white/10' : 'border-white/20 hover:border-[#D4AF37]/40 bg-white/5'
+          )}
+          style={bean.imageUrl ? undefined : { backgroundColor: bean.imageColor + '30' }}
+        >
+          {bean.imageUrl ? (
+            <>
+              <img src={bean.imageUrl} alt="" className="w-full h-full object-cover" />
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  updateBean(bean.id, { imageUrl: undefined });
+                }}
+                className="absolute top-2 left-2 w-7 h-7 rounded-full bg-black/60 backdrop-blur-md border border-white/10 flex items-center justify-center"
+              >
+                <X className="w-3.5 h-3.5 text-white" />
+              </button>
+            </>
+          ) : (
+            <div className="flex flex-col items-center gap-1 text-white/50">
+              <ImagePlus className="w-5 h-5 text-[#D4AF37]" />
+              <span className="text-[10px]">הוסף תמונה</span>
+            </div>
+          )}
+          <input
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => void onPickImage(e.target.files?.[0])}
+          />
+        </label>
+
         {/* Name */}
         <input
           className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-[#F5F5F5] w-full text-right"
@@ -286,9 +338,13 @@ function BeanRow({ bean, editMode }: { bean: CoffeeBag; editMode: boolean }) {
       <button onClick={() => setOpen(!open)} className="w-full text-right flex items-center gap-4 p-4">
         <div
           className="w-14 h-16 rounded-lg bg-black/40 overflow-hidden shrink-0 border border-white/5 relative flex items-center justify-center"
-          style={{ backgroundColor: bean.imageColor + '30' }}
+          style={bean.imageUrl ? undefined : { backgroundColor: bean.imageColor + '30' }}
         >
-          <CoffeeIcon className="w-6 h-6 text-[#D4AF37]/70" />
+          {bean.imageUrl ? (
+            <img src={bean.imageUrl} alt="" className="w-full h-full object-cover" />
+          ) : (
+            <CoffeeIcon className="w-6 h-6 text-[#D4AF37]/70" />
+          )}
         </div>
         <div className="flex-1 min-w-0">
           <h4 className="font-display text-sm text-[#F5F5F5] truncate">{bean.name}</h4>
@@ -372,6 +428,32 @@ function BeanStepper({
       >+</button>
     </div>
   );
+}
+
+async function compressImage(file: File, maxSize = 480, quality = 0.85): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('read failed'));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('image load failed'));
+      img.onload = () => {
+        let { width, height } = img;
+        const scale = Math.min(1, maxSize / Math.max(width, height));
+        width = Math.round(width * scale);
+        height = Math.round(height * scale);
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return reject(new Error('canvas unsupported'));
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.src = reader.result as string;
+    };
+    reader.readAsDataURL(file);
+  });
 }
 
 function TasteBar({ label, value, onChange }: { label: string; value: number; onChange?: (v: number) => void }) {
