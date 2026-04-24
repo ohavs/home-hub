@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import { Coffee, Utensils, Home as HomeIcon, Wallet, Heart, Bell, Calendar, CreditCard } from 'lucide-react';
 import { useStore } from '@/src/data/store';
 import { Badge } from '@/src/components/ui/primitives';
+import { SyncButton } from '@/src/components/SyncButton';
 
 interface HubProps {
   onSelect: (id: string, color: string) => void;
@@ -90,17 +91,20 @@ export function Hub({ onSelect }: HubProps) {
             <span>{formatHebrewDate()}</span>
           </div>
         </div>
-        <button
-          className="w-11 h-11 rounded-full bg-white/5 border border-white/10 flex items-center justify-center relative"
-          aria-label="התראות"
-        >
-          <Bell className="w-5 h-5 text-[#D4AF37]" />
-          {(coffeeAlerts + kitchenAlerts + homeAlerts + billsDue + wellnessAlerts + upcomingSubs) > 0 && (
-            <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[#D4AF37] text-black text-[10px] font-bold flex items-center justify-center">
-              {coffeeAlerts + kitchenAlerts + homeAlerts + billsDue + wellnessAlerts + upcomingSubs}
-            </span>
-          )}
-        </button>
+        <div className="flex items-center gap-2">
+          <SyncButton />
+          <button
+            className="w-11 h-11 rounded-full bg-white/5 border border-white/10 flex items-center justify-center relative"
+            aria-label="התראות"
+          >
+            <Bell className="w-5 h-5 text-[#D4AF37]" />
+            {(coffeeAlerts + kitchenAlerts + homeAlerts + billsDue + wellnessAlerts + upcomingSubs) > 0 && (
+              <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[#D4AF37] text-black text-[10px] font-bold flex items-center justify-center">
+                {coffeeAlerts + kitchenAlerts + homeAlerts + billsDue + wellnessAlerts + upcomingSubs}
+              </span>
+            )}
+          </button>
+        </div>
       </header>
 
       {/* Dashboards carousel */}
